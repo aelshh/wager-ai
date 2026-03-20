@@ -1,10 +1,14 @@
-import { OpenRouter } from "@openrouter/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { promptGenerator } from "@/app/lib/ai/prompts";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt } = body;
+    const { userPrompt } = body;
+    console.log(userPrompt);
+    const finalPrompt = promptGenerator(userPrompt);
+
+    console.log(finalPrompt)
 
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error("OpenRouter API KEY not present");
@@ -16,18 +20,20 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "applicaton/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "stepfun/step-3.5-flash:free",
-          messages: [{ role: "user", content: prompt }],
+          model: "nvidia/nemotron-3-super-120b-a12b:free",
+          messages: finalPrompt,
           stream: true,
         }),
       },
     );
 
-    if (!aiResoponse.body) {
-      return new Response("No stream", { status: 500 });
+
+    if (!aiResoponse.ok) {
+      console.log(aiResoponse);
+      return new Response("Some thing went wrong", { status: 500 });
     }
 
     return new Response(aiResoponse.body, {
